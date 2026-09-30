@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AuraStore | Tech and workspace gear in Nigeria</title>
+<meta name="description" content="Headphones, monitors, keyboards, chargers and office gear. Prices in naira, pay on delivery.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2338bdf8'/%3E%3Cpath d='M18 5 8 18h7l-1 9 10-13h-7z' fill='%2306222f'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body data-page="home">
+<div id="site-header"></div>
+<main>
+  <section class="hero"><div class="wrap">
+    <h1>Good gear for the desk you work at</h1>
+    <p>Headphones, monitors, keyboards and chargers, priced in naira. Order online and pay when it arrives.</p>
+    <a class="btn" href="shop.html">Shop now <i data-lucide="arrow-right"></i></a>
+  </div></section>
+
+  <section class="section"><div class="wrap">
+    <div class="head"><h2>Shop by category</h2></div>
+    <div class="cats" id="cats"></div>
+  </div></section>
+
+  <section class="section"><div class="wrap">
+    <div class="head"><h2>Trending now</h2><a href="shop.html">View all</a></div>
+    <div class="grid" id="featured"></div>
+  </div></section>
+
+  <section class="section" id="deals-section" hidden><div class="wrap">
+    <div class="head"><h2>Deals</h2></div>
+    <div class="grid" id="deals"></div>
+  </div></section>
+
+  <section class="section"><div class="wrap trust">
+    <div><i data-lucide="truck"></i><span><strong>Delivery across Nigeria</strong><small>Free from ₦100,000</small></span></div>
+    <div><i data-lucide="banknote"></i><span><strong>Pay on delivery</strong><small>No card details needed</small></span></div>
+    <div><i data-lucide="shield-check"></i><span><strong>Secure sign-in</strong><small>Continue with Google</small></span></div>
+  </div></section>
+</main>
+<div id="site-footer"></div>
+
+<script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/supabase.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/products.js"></script>
+<script src="js/cart.js"></script>
+<script src="js/layout.js"></script>
+<script>
+(function () {
+  const ICONS = { audio: 'headphones', peripherals: 'keyboard', displays: 'monitor', accessories: 'cable', 'power-and-charging': 'battery-charging', workspace: 'lamp-desk' };
+  const fail = (el, retry) => { el.innerHTML = '<div class="state">Could not load products.<br><br><button class="btn ghost" id="retry-' + el.id + '">Retry</button></div>'; document.getElementById('retry-' + el.id).onclick = retry; };
+  async function cats() {
+    const el = document.getElementById('cats');
+    try { el.innerHTML = (await Aura.products.categories()).map(c => `<a class="cat" href="shop.html?category=${encodeURIComponent(c.slug)}"><i data-lucide="${ICONS[c.slug] || 'box'}"></i>${Aura.esc(c.name)}</a>`).join(''); lucide.createIcons(); }
+    catch (x) { fail(el, cats); }
+  }
+  async function featured() {
+    const el = document.getElementById('featured'); el.innerHTML = Aura.products.skeletons(8);
+    try { el.innerHTML = (await Aura.products.featured(8)).map(Aura.products.card).join(''); } catch (x) { fail(el, featured); }
+  }
+  async function deals() {
+    try { const d = await Aura.products.deals(4); if (!d.length) return; document.getElementById('deals').innerHTML = d.map(Aura.products.card).join(''); document.getElementById('deals-section').hidden = false; } catch (x) {}
+  }
+  cats(); featured(); deals();
+})();
+</script>
+</body>
+</html>
