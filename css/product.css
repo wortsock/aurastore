@@ -1,0 +1,27 @@
+/* Product page styles (add after style.css) */
+.crumbs{display:flex;flex-wrap:wrap;gap:6px;padding:20px 0 8px;color:var(--muted);font-size:.85rem}
+.crumbs a:hover{color:var(--accent)}.crumbs span[aria-current]{color:var(--text)}
+.pd{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:40px;padding:12px 0 24px}
+@media(max-width:860px){.pd{grid-template-columns:minmax(0,1fr);gap:20px}}
+.gallery-main{aspect-ratio:1;border-radius:var(--r);overflow:hidden;background:var(--surface);border:1px solid var(--border);touch-action:pan-y}
+.gallery-main img{width:100%;height:100%;object-fit:cover}
+.thumbs{display:flex;gap:10px;margin-top:12px}
+.thumbs button{width:72px;height:72px;padding:0;border:2px solid var(--border);border-radius:var(--r-sm);overflow:hidden;background:var(--surface)}
+.thumbs button[aria-current="true"]{border-color:var(--accent)}.thumbs img{width:100%;height:100%;object-fit:cover}
+.pd h1{font-size:clamp(1.4rem,3.5vw,2rem);font-weight:600;margin:4px 0 8px}
+.pd .brandline a{color:var(--accent)}
+.pd .rate{font-size:.95rem;margin:6px 0}
+.pd-price{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px;margin:14px 0 4px}
+.pd-price b{font:600 1.9rem Outfit,sans-serif}.pd-price .old{font-size:1rem;margin:0}
+.pd-price .tag{position:static}
+.stock-ok{color:var(--ok);font-weight:600}.stock-low{color:#fbbf24;font-weight:600}
+.buy{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin:20px 0}
+.qty-sel{display:inline-flex;align-items:center;border:1px solid var(--border);border-radius:var(--r-sm)}
+.qty-sel button{width:40px;height:44px;background:none;border:0;font-size:1.1rem}.qty-sel span{min-width:36px;text-align:center}
+.note{display:flex;gap:12px;padding:14px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);color:var(--muted);font-size:.9rem}
+.note svg{flex:none;color:var(--accent)}
+.sec{padding:24px 0;border-top:1px solid var(--border)}.sec h2{font-size:1.2rem;font-weight:600;margin-bottom:12px}
+.sec ul{margin:0;padding-left:20px}.sec li{margin-bottom:6px}.sec p{margin:0;max-width:75ch;color:#cbd5e1}
+.specs{width:100%;border-collapse:collapse;max-width:720px}
+.specs th,.specs td{padding:10px 14px;border:1px solid var(--border);text-align:left;vertical-align:top;font-size:.92rem}
+.specs th{width:38%;background:var(--surface);font-weight:500;color:var(--muted)}
