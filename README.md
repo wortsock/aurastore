@@ -96,4 +96,4 @@ Open a terminal inside the project folder and run `python -m http.server 8000`, 
 
 ## Screenshots
 
-Add screenshots of Home, Catalog, Product, Cart, Checkout, Confirmation and Orders here, for example `![Home](screenshots/home.png)`.
+<img width="1581" height="757" alt="image" src="https://github.com/user-attachments/assets/d53268a2-5e4b-40c0-aa82-542ae58dde32" />
