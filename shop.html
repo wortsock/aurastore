@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Catalog | AuraStore</title>
+<meta name="description" content="Browse all AuraStore products. Filter by category, search and sort. Prices in naira, pay on delivery.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2338bdf8'/%3E%3Cpath d='M18 5 8 18h7l-1 9 10-13h-7z' fill='%2306222f'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/shop.css">
+</head>
+<body data-page="shop">
+<div id="site-header"></div>
+<main><div class="wrap">
+  <div class="page-head"><h1 id="title">All products</h1><p id="sub"></p></div>
+  <nav class="pills" id="pills" aria-label="Categories"></nav>
+  <div class="toolbar">
+    <label class="field">Min price (₦)<input id="min" type="number" min="0" inputmode="numeric" placeholder="0"></label>
+    <label class="field">Max price (₦)<input id="max" type="number" min="0" inputmode="numeric" placeholder="Any"></label>
+    <label class="field">Sort by<select id="sort">
+      <option value="featured">Featured</option><option value="price-asc">Price: low to high</option><option value="price-desc">Price: high to low</option>
+      <option value="rating">Top rated</option><option value="discount">Biggest discount</option></select></label>
+    <button class="btn ghost" id="clear" hidden>Clear filters</button>
+    <span class="count" id="count" aria-live="polite"></span>
+  </div>
+  <div class="grid" id="grid"></div>
+  <div class="more"><button class="btn ghost" id="more" hidden>Load more</button></div>
+</div></main>
+<div id="site-footer"></div>
+
+<script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/supabase.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/products.js"></script>
+<script src="js/cart.js"></script>
+<script src="js/layout.js"></script>
+<script>
+(function () {
+  const P = Aura.products, e = Aura.esc, PAGE = 12, $ = id => document.getElementById(id);
+  const headerSearch = document.querySelector('.search input');
+  let all = [], cats = [], st = {}, shown = PAGE;
+
+  function readURL() {
+    const u = new URLSearchParams(location.search);
+    st = { category: u.get('category') || '', q: u.get('q') || '', sort: u.get('sort') || 'featured', min: u.get('min') || '', max: u.get('max') || '' };
+    $('min').value = st.min; $('max').value = st.max; $('sort').value = st.sort; headerSearch.value = st.q;
+  }
+  function writeURL(push) {
+    const u = new URLSearchParams();
+    Object.entries(st).forEach(([k, v]) => { if (v && !(k === 'sort' && v === 'featured')) u.set(k, v); });
+    history[push ? 'pushState' : 'replaceState'](null, '', location.pathname + (u.toString() ? '?' + u : ''));
+  }
+  function filtered() {
+    const q = st.q.trim().toLowerCase(), cat = cats.find(c => c.slug === st.category), min = +st.min || 0, max = +st.max || Infinity;
+    const off = p => p.old_price ? 1 - p.price / p.old_price : 0;
+    const sorts = {
+      'price-asc': (a, b) => a.price - b.price, 'price-desc': (a, b) => b.price - a.price,
+      rating: (a, b) => b.rating_avg - a.rating_avg || b.rating_count - a.rating_count,
+      discount: (a, b) => off(b) - off(a),
+      featured: (a, b) => (b.is_featured - a.is_featured) || (b.rating_count - a.rating_count)
+    };
+    return all.filter(p => (!cat || p.category_id === cat.id) && p.price >= min && p.price <= max &&
+      (!q || [p.name, p.brand, (cats.find(c => c.id === p.category_id) || {}).name].join(' ').toLowerCase().includes(q)))
+      .sort(sorts[st.sort] || sorts.featured);
+  }
+  function render() {
+    const cat = cats.find(c => c.slug === st.category), list = filtered();
+    $('title').textContent = st.q ? 'Results for "' + st.q + '"' : (cat ? cat.name : 'All products');
+    document.title = $('title').textContent + ' | AuraStore';
+    $('pills').innerHTML = [{ slug: '', name: 'All' }].concat(cats).map(c => `<button class="pill" data-cat="${e(c.slug)}" aria-pressed="${c.slug === st.category}">${e(c.name)}</button>`).join('');
+    $('count').textContent = list.length + (list.length === 1 ? ' product' : ' products');
+    $('clear').hidden = !(st.category || st.q || st.min || st.max);
+    $('grid').innerHTML = list.length ? list.slice(0, shown).map(P.card).join('')
+      : '<div class="state">No products match your filters.<br>Try a different search or clear the filters.</div>';
+    $('more').hidden = list.length <= shown;
+  }
+  async function load() {
+    $('grid').innerHTML = P.skeletons(8);
+    try {
+      const [c, p] = await Promise.all([P.categories(),
+        auraDb.from('products').select(P.FIELDS + ',category_id')]);
+      if (p.error) throw p.error;
+      cats = c; all = P.remember(p.data); render();
+    } catch (x) {
+      $('grid').innerHTML = '<div class="state">Could not load products.<br><br><button class="btn ghost" id="retry">Retry</button></div>';
+      $('retry').onclick = load;
+    }
+  }
+  function change(push) { shown = PAGE; writeURL(push); render(); }
+  $('pills').onclick = ev => { const b = ev.target.closest('[data-cat]'); if (b) { st.category = b.dataset.cat; change(true); } };
+  $('sort').onchange = () => { st.sort = $('sort').value; change(true); };
+  const onPrice = Aura.debounce(() => { st.min = $('min').value; st.max = $('max').value; change(false); });
+  $('min').oninput = onPrice; $('max').oninput = onPrice;
+  headerSearch.addEventListener('input', Aura.debounce(() => { st.q = headerSearch.value; change(false); }));
+  document.querySelector('.search').addEventListener('submit', ev => { ev.preventDefault(); st.q = headerSearch.value; change(false); });
+  $('clear').onclick = () => { st = { category: '', q: '', sort: 'featured', min: '', max: '' }; $('min').value = $('max').value = headerSearch.value = ''; $('sort').value = 'featured'; change(true); };
+  $('more').onclick = () => { shown += PAGE; render(); };
+  window.addEventListener('popstate', () => { readURL(); shown = PAGE; render(); });
+  readURL(); load();
+})();
+</script>
+</body>
+</html>
