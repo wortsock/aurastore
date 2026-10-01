@@ -1,6 +1,7 @@
 // Cart module (S-11): localStorage for guests, cart_items table when signed in. Merge rule D-6.
 (function () {
   const KEY = 'aura_cart_v1'; let items = [], user = null; const subs = [], cache = {};
+  let resolveReady; const ready = new Promise(r => resolveReady = r);
   const rl = () => { try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch (e) { return []; } };
   const wl = a => { try { localStorage.setItem(KEY, JSON.stringify(a)); } catch (e) {} };
   const emit = () => subs.forEach(f => f());
@@ -46,12 +47,13 @@
     async setQty(id, q) { const i = items.find(x => x.id === id), p = cache[id]; if (!i || !p) return; i.qty = Math.max(1, Math.min(q, p.stock_qty)); emit(); await save(); },
     async remove(id) { items = items.filter(i => i.id !== id); emit(); await save(); },
     async clear() { items = []; emit(); await save(); },
-    mergeGuestCart
+    mergeGuestCart, ready
   };
   Aura.auth.onChange(async (event, session) => {
     if (session && session.user) {
       if (!user || user.id !== session.user.id) { user = session.user; try { await mergeGuestCart(); } catch (e) { console.error(e); } emit(); }
     } else { user = null; items = event === 'SIGNED_OUT' ? [] : rl(); if (event === 'SIGNED_OUT') wl([]); emit(); }
+    resolveReady();
   });
   items = rl();
 })();
