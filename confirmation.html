@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Order confirmed | AuraStore</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2338bdf8'/%3E%3Cpath d='M18 5 8 18h7l-1 9 10-13h-7z' fill='%2306222f'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/shop.css">
+<link rel="stylesheet" href="css/cart.css">
+<link rel="stylesheet" href="css/checkout.css">
+</head>
+<body data-page="confirmation">
+<div id="site-header"></div>
+<main><div class="wrap" style="max-width:760px"><div id="root"><div class="sk" style="height:320px;margin-top:24px"></div></div></div></main>
+<div id="site-footer"></div>
+<script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/supabase.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/products.js"></script>
+<script src="js/cart.js"></script>
+<script src="js/layout.js"></script>
+<script>
+(async function () {
+  const e = Aura.esc, N = Aura.formatNaira, root = document.getElementById('root'), num = Aura.qs('order');
+  const session = await Aura.auth.getSession();
+  if (!session) { sessionStorage.setItem('aura_return', 'confirmation.html' + location.search); return location.replace('login.html'); }
+  const nf = () => { root.innerHTML = '<div class="state" style="margin-top:40px">Order not found.<br><br><a class="btn" href="shop.html">Continue shopping</a></div>'; };
+  if (!num) return nf();
+  try {
+    const { data: o, error } = await auraDb.from('orders').select('*').eq('order_number', num).maybeSingle();   // RLS: only your own orders
+    if (error) throw error; if (!o) return nf();
+    const { data: items } = await auraDb.from('order_items').select('*').eq('order_id', o.id).order('id');
+    document.title = 'Order ' + o.order_number + ' | AuraStore';
+    const mail = o.email_status === 'sent' ? '<p>A confirmation email was sent to <strong>' + e(o.contact_email) + '</strong>.</p>'
+      : o.email_status === 'failed' ? '<div class="banner" role="status">We saved your order but could not send the email. Your order number is <strong>' + e(o.order_number) + '</strong>.</div>'
+      : '<p>We are sending a confirmation email to <strong>' + e(o.contact_email) + '</strong>.</p>';
+    root.innerHTML = '<div class="ok-head"><div class="tick"><i data-lucide="check"></i></div><h1>Thank you, your order is placed</h1><p>Order number <strong>' + e(o.order_number) + '</strong></p></div>' +
+      '<div style="text-align:center">' + mail + '</div>' +
+      '<section class="box"><h2>Order details</h2><dl class="kv"><dt>Date</dt><dd>' + Aura.formatDate(o.created_at) + '</dd><dt>Status</dt><dd><span class="status">' + e(o.status.charAt(0).toUpperCase() + o.status.slice(1)) + '</span></dd><dt>Payment</dt><dd>Pay on Delivery</dd><dt>Delivering to</dt><dd>' + e(o.ship_name) + '<br>' + e(o.ship_address) + ', ' + e(o.ship_city) + ', ' + e(o.ship_state) + '<br>' + e(o.ship_phone) + '</dd></dl></section>' +
+      '<section class="box"><h2>Items</h2>' + (items || []).map(i => '<div class="mini"><img src="' + e(i.image_url || '') + '" alt=""><div>' + e(i.product_name) + '<div class="q">' + i.quantity + ' x ' + N(i.unit_price) + '</div></div><span>' + N(i.line_total) + '</span></div>').join('') +
+      '<div class="row" style="border-top:1px solid var(--border);margin-top:8px"><span>Subtotal</span><span>' + N(o.subtotal) + '</span></div><div class="row"><span>Delivery</span><span>' + (o.delivery_fee === 0 ? '<span class="free">Free</span>' : N(o.delivery_fee)) + '</span></div><div class="row total"><span>Total</span><span>' + N(o.total) + '</span></div></section>' +
+      '<div class="actions"><a class="btn" href="orders.html">View my orders</a><a class="btn ghost" href="shop.html">Continue shopping</a></div>';
+    lucide.createIcons();
+  } catch (x) { console.error(x); root.innerHTML = '<div class="state" style="margin-top:40px">Could not load your order.<br><br><button class="btn ghost" onclick="location.reload()">Retry</button></div>'; }
+})();
+</script>
+</body>
+</html>

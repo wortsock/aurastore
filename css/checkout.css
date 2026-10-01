@@ -1,0 +1,22 @@
+/* Checkout and confirmation pages (add after style.css and cart.css) */
+.box{padding:20px;margin-bottom:16px;background:var(--card);border:1px solid var(--border);border-radius:var(--r)}
+.box h2{font-size:1.1rem;font-weight:600;margin-bottom:14px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.form-grid .full{grid-column:1/-1}
+@media(max-width:560px){.form-grid{grid-template-columns:minmax(0,1fr)}}
+.fld{display:grid;gap:5px;font-size:.88rem;color:var(--muted)}
+.fld input,.fld select{font:inherit;font-size:.95rem;height:44px;padding:0 12px;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--surface);color:var(--text);width:100%}
+.fld input.bad,.fld select.bad{border-color:var(--bad)}
+.ferr{color:var(--bad);font-size:.82rem;min-height:0}
+.chk{display:flex;gap:10px;align-items:center;margin-top:14px;color:var(--text);font-size:.92rem}
+.chk input{width:18px;height:18px;accent-color:var(--accent)}
+.pay{display:flex;gap:12px;align-items:flex-start;padding:14px;border:1px solid var(--accent);border-radius:var(--r-sm);background:var(--accent-soft)}
+.pay svg{color:var(--accent);flex:none}.pay small{display:block;color:var(--muted)}
+.mini{display:grid;grid-template-columns:48px minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 0;font-size:.9rem}
+.mini img{width:48px;height:48px;border-radius:6px;object-fit:cover}.mini .q{color:var(--muted);font-size:.82rem}
+.banner{padding:12px 16px;margin-bottom:16px;border-radius:var(--r-sm);border:1px solid var(--bad);background:rgba(248,113,113,.1)}
+.banner a{color:var(--accent);text-decoration:underline}.banner ul{margin:6px 0 0;padding-left:20px}
+.ok-head{text-align:center;padding:28px 0 8px}.ok-head .tick{width:56px;height:56px;margin:0 auto 12px;border-radius:50%;display:grid;place-items:center;background:rgba(16,185,129,.15);color:var(--ok)}
+.ok-head h1{font-size:1.7rem;font-weight:600}.ok-head p{color:var(--muted);margin:6px 0 0}
+.status{display:inline-block;padding:2px 10px;border-radius:999px;background:var(--accent-soft);color:var(--accent);font-size:.82rem;font-weight:600}
+.kv{display:grid;grid-template-columns:140px minmax(0,1fr);gap:6px 12px;font-size:.92rem}.kv dt{color:var(--muted)}.kv dd{margin:0}
+.actions{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin:20px 0}

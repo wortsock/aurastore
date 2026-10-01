@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>My orders | AuraStore</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2338bdf8'/%3E%3Cpath d='M18 5 8 18h7l-1 9 10-13h-7z' fill='%2306222f'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/shop.css">
+<link rel="stylesheet" href="css/cart.css">
+<link rel="stylesheet" href="css/checkout.css">
+<link rel="stylesheet" href="css/orders.css">
+</head>
+<body data-page="orders">
+<div id="site-header"></div>
+<main><div class="wrap" style="max-width:860px">
+  <div class="page-head"><h1>My orders</h1></div>
+  <div id="root"><div class="sk" style="height:140px"></div></div>
+</div></main>
+<div id="site-footer"></div>
+<script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/supabase.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/products.js"></script>
+<script src="js/cart.js"></script>
+<script src="js/layout.js"></script>
+<script>
+(async function () {
+  const e = Aura.esc, N = Aura.formatNaira, root = document.getElementById('root');
+  const session = await Aura.auth.getSession();
+  if (!session) { sessionStorage.setItem('aura_return', 'orders.html'); return location.replace('login.html'); }   // P9-01 guard
+  const label = s => s.charAt(0).toUpperCase() + s.slice(1);
+
+  async function load() {
+    root.innerHTML = '<div class="sk" style="height:140px"></div>';
+    try {
+      const { data: orders, error } = await auraDb.from('orders').select('*').order('created_at', { ascending: false });   // RLS: own orders only
+      if (error) throw error;
+      if (!orders.length) { root.innerHTML = '<div class="state"><p>No orders yet.</p><a class="btn" href="shop.html">Browse the catalog</a></div>'; return; }
+      const { data: items, error: ie } = await auraDb.from('order_items').select('*').in('order_id', orders.map(o => o.id)).order('id');
+      if (ie) throw ie;
+      const by = {}; items.forEach(i => (by[i.order_id] = by[i.order_id] || []).push(i));
+      root.innerHTML = orders.map((o, k) => {
+        const its = by[o.id] || [], count = its.reduce((s, i) => s + i.quantity, 0);
+        return '<details class="order"' + (k === 0 ? ' open' : '') + '><summary><div><div class="o-num">' + e(o.order_number) + '</div><div class="o-meta">' + Aura.formatDate(o.created_at) + ' &middot; ' + count + (count === 1 ? ' item' : ' items') + '</div></div>' +
+          '<div class="o-right"><div class="o-total">' + N(o.total) + '</div><span class="status s-' + e(o.status) + '">' + e(label(o.status)) + '</span></div></summary>' +
+          '<div class="order-body"><h3>Items</h3>' + its.map(i => '<div class="mini"><img src="' + e(i.image_url || '') + '" alt=""><div>' + e(i.product_name) + '<div class="q">' + i.quantity + ' x ' + N(i.unit_price) + '</div></div><span>' + N(i.line_total) + '</span></div>').join('') +
+          '<div class="row" style="border-top:1px solid var(--border);margin-top:6px"><span>Subtotal</span><span>' + N(o.subtotal) + '</span></div><div class="row"><span>Delivery</span><span>' + (o.delivery_fee === 0 ? '<span class="free">Free</span>' : N(o.delivery_fee)) + '</span></div><div class="row"><strong>Total</strong><strong>' + N(o.total) + '</strong></div>' +
+          '<h3>Delivering to</h3><p style="margin:0;color:#cbd5e1">' + e(o.ship_name) + '<br>' + e(o.ship_address) + ', ' + e(o.ship_city) + ', ' + e(o.ship_state) + '<br>' + e(o.ship_phone) + '</p>' +
+          '<h3>Payment</h3><p style="margin:0;color:#cbd5e1">Pay on Delivery</p></div></details>';
+      }).join('');
+    } catch (x) { console.error(x); root.innerHTML = '<div class="state">Could not load your orders.<br><br><button class="btn ghost" id="retry">Retry</button></div>'; document.getElementById('retry').onclick = load; }
+  }
+  load();
+})();
+</script>
+</body>
+</html>

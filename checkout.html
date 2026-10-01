@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Checkout | AuraStore</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2338bdf8'/%3E%3Cpath d='M18 5 8 18h7l-1 9 10-13h-7z' fill='%2306222f'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/shop.css">
+<link rel="stylesheet" href="css/cart.css">
+<link rel="stylesheet" href="css/checkout.css">
+</head>
+<body data-page="checkout">
+<div id="site-header"></div>
+<main><div class="wrap">
+  <div class="page-head"><h1>Checkout</h1></div>
+  <div id="banner" aria-live="polite"></div>
+  <div id="root"><div class="sk" style="height:320px"></div></div>
+</div></main>
+<div id="site-footer"></div>
+<script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/supabase.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/products.js"></script>
+<script src="js/cart.js"></script>
+<script src="js/layout.js"></script>
+<script>
+(async function () {
+  const e = Aura.esc, N = Aura.formatNaira, $ = id => document.getElementById(id), root = $('root');
+  const STATES = ['Abia','Adamawa','Akwa Ibom','Anambra','Bauchi','Bayelsa','Benue','Borno','Cross River','Delta','Ebonyi','Edo','Ekiti','Enugu','FCT (Abuja)','Gombe','Imo','Jigawa','Kaduna','Kano','Katsina','Kebbi','Kogi','Kwara','Lagos','Nasarawa','Niger','Ogun','Ondo','Osun','Oyo','Plateau','Rivers','Sokoto','Taraba','Yobe','Zamfara'];
+  const toLogin = () => { sessionStorage.setItem('aura_return', 'checkout.html'); sessionStorage.setItem('aura_login_reason', 'checkout'); location.replace('login.html'); };
+
+  // P7-01: access guard
+  const session = await Aura.auth.getSession();
+  if (!session) return toLogin();
+  await Promise.race([Aura.cart.ready, new Promise(r => setTimeout(r, 5000))]);
+  let rows;
+  try { rows = await Aura.cart.getItems(); } catch (x) { root.innerHTML = '<div class="state">Could not load your cart.<br><br><button class="btn ghost" onclick="location.reload()">Retry</button></div>'; return; }
+  if (!rows.length) return location.replace('cart.html');
+
+  // P7-02: prefill from saved profile, then Google details
+  const uid = session.user.id, meta = session.user.user_metadata || {};
+  const { data: pr } = await auraDb.from('profiles').select('*').eq('id', uid).maybeSingle();
+  const pre = { name: (pr && pr.full_name) || meta.full_name || meta.name || '', email: (pr && pr.email) || session.user.email || '', phone: (pr && pr.phone) || '', address: (pr && pr.default_address) || '', city: (pr && pr.city) || '', state: (pr && pr.state) || '' };
+
+  const sub = rows.reduce((s, r) => s + r.product.price * r.quantity, 0);
+  const free = sub >= AURA_CONFIG.FREE_DELIVERY_THRESHOLD, fee = free ? 0 : AURA_CONFIG.DELIVERY_FEE;
+  const fld = (id, label, type, val, extra) => `<label class="fld ${extra && extra.full ? 'full' : ''}">${label}<input id="f-${id}" name="${id}" type="${type}" value="${e(val)}" ${(extra && extra.attr) || ''}><span class="ferr" id="e-${id}"></span></label>`;
+  root.innerHTML = `<form id="form" novalidate><div class="cart-layout"><div>
+    <section class="box"><h2>Delivery details</h2><div class="form-grid">
+      ${fld('name', 'Full name', 'text', pre.name, { full: true, attr: 'autocomplete="name"' })}
+      ${fld('phone', 'Phone number', 'tel', pre.phone, { attr: 'autocomplete="tel" placeholder="0801 234 5678"' })}
+      ${fld('email', 'Email address', 'email', pre.email, { attr: 'autocomplete="email"' })}
+      ${fld('address', 'Street address', 'text', pre.address, { full: true, attr: 'autocomplete="street-address"' })}
+      ${fld('city', 'City or town', 'text', pre.city, { attr: 'autocomplete="address-level2"' })}
+      <label class="fld">State<select id="f-state" name="state" autocomplete="address-level1"><option value="">Choose state</option>${STATES.map(s => `<option ${s === pre.state ? 'selected' : ''}>${e(s)}</option>`).join('')}</select><span class="ferr" id="e-state"></span></label>
+    </div><label class="chk"><input type="checkbox" id="f-save" checked> Save these details for next time</label></section>
+    <section class="box"><h2>Payment method</h2><div class="pay"><i data-lucide="banknote"></i><div><strong>Pay on Delivery</strong><small>Pay in cash or by transfer when your order arrives. We never ask for card details.</small></div></div></section>
+  </div>
+  <aside class="summary" aria-label="Order summary"><h2>Order summary</h2>
+    ${rows.map(({ product: p, quantity: q }) => `<div class="mini"><img src="${e(p.image_urls[0])}" alt=""><div>${e(p.name)}<div class="q">Qty ${q}</div></div><span>${N(p.price * q)}</span></div>`).join('')}
+    <div class="row" style="border-top:1px solid var(--border);margin-top:8px"><span>Subtotal</span><span>${N(sub)}</span></div>
+    <div class="row"><span>Delivery</span><span>${free ? '<span class="free">Free</span>' : N(fee)}</span></div>
+    <div class="row total"><span>Total</span><span>${N(sub + fee)}</span></div>
+    <button class="btn" id="place" type="submit">Place order</button>
+    <a class="btn ghost" href="cart.html">Edit cart</a></aside></div></form>`;
+  lucide.createIcons();
+
+  // validation (same rules as the server)
+  const val = () => ({ name: $('f-name').value.trim(), phone: $('f-phone').value.trim(), email: $('f-email').value.trim(), address: $('f-address').value.trim(), city: $('f-city').value.trim(), state: $('f-state').value });
+  function check(v) {
+    const f = {};
+    if (v.name.length < 2) f.name = 'Enter your full name.';
+    if (!/^(\+234|0)[789][01]\d{8}$/.test(v.phone.replace(/[\s-]/g, ''))) f.phone = 'Enter a valid Nigerian phone number, e.g. 0801 234 5678.';
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.email)) f.email = 'Enter a valid email address.';
+    if (v.address.length < 5) f.address = 'Enter your delivery address.';
+    if (v.city.length < 2) f.city = 'Enter your city or town.';
+    if (!v.state) f.state = 'Choose your state.';
+    return f;
+  }
+  const showErr = f => { ['name','phone','email','address','city','state'].forEach(k => { $('e-' + k).textContent = f[k] || ''; $('f-' + k).classList.toggle('bad', !!f[k]); }); const first = Object.keys(f)[0]; if (first && $('f-' + first)) $('f-' + first).focus(); };
+  root.addEventListener('input', ev => { const k = ev.target.name; if (k && $('e-' + k)) { $('e-' + k).textContent = ''; ev.target.classList.remove('bad'); } });
+
+  // a fresh request id per attempt-set; kept across retries so a retry can never create a second order
+  const reqId = () => { let id = sessionStorage.getItem('aura_req_id'); if (!id) { id = crypto.randomUUID(); sessionStorage.setItem('aura_req_id', id); } return id; };
+  let busy = false, done = false; const btn = $('place');
+
+  $('form').addEventListener('submit', async ev => {
+    ev.preventDefault(); if (busy) return;
+    const v = val(), errs = check(v); showErr(errs); if (Object.keys(errs).length) return;
+    busy = true; btn.disabled = true; btn.textContent = 'Placing your order...'; $('banner').innerHTML = '';
+    try {
+      const s = await Aura.auth.getSession(); if (!s) return toLogin();              // expired session
+      const res = await fetch(AURA_CONFIG.SUPABASE_URL + '/functions/v1/place-order', { method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + s.access_token, 'apikey': AURA_CONFIG.SUPABASE_ANON_KEY },
+        body: JSON.stringify(Object.assign({}, v, { request_id: reqId() })) });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        done = true; sessionStorage.removeItem('aura_req_id');
+        if ($('f-save').checked) { try { await auraDb.from('profiles').update({ full_name: v.name, phone: v.phone, default_address: v.address, city: v.city, state: v.state }).eq('id', uid); } catch (x) {} }
+        await Aura.cart.clear(); location.href = 'confirmation.html?order=' + encodeURIComponent(data.order_number); return;
+      }
+      if (res.status === 401) return toLogin();
+      if (res.status === 400 && data.fields) { showErr(data.fields); $('banner').innerHTML = '<div class="banner" role="alert">Please check the highlighted details.</div>'; }
+      else if (data.error === 'EMPTY_CART') location.replace('cart.html');
+      else if (res.status === 409 && data.error === 'STOCK_PROBLEM') {
+        $('banner').innerHTML = '<div class="banner" role="alert">Some items are no longer available in the quantity you chose:<ul>' + (data.items || []).map(i => '<li>' + e(i.name) + ': you asked for ' + i.requested + ', only ' + i.available + ' left</li>').join('') + '</ul><p style="margin:8px 0 0"><a href="cart.html">Review your cart</a> to fix this, then come back.</p></div>';
+      }
+      else $('banner').innerHTML = '<div class="banner" role="alert">Something went wrong on our side. Your details are kept, so please try again.</div>';
+    } catch (x) {
+      console.error(x); $('banner').innerHTML = '<div class="banner" role="alert">We could not reach the server. Check your connection and try again. Your details are kept.</div>';
+    } finally { if (!done) { busy = false; btn.disabled = false; btn.textContent = 'Place order'; } }
+  });
+})();
+</script>
+</body>
+</html>

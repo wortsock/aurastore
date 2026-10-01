@@ -26,7 +26,7 @@
     signedIn = !!session; const u = session && session.user, box = $('acct');
     if (!u) { box.innerHTML = `<a class="btn ghost" href="login.html" id="signin"><i data-lucide="log-in"></i><span>Sign in</span></a>`; icons(); return; }
     const m = u.user_metadata || {}, first = (m.full_name || m.name || u.email || 'Account').split(' ')[0];
-    box.innerHTML = `<button class="acct-btn" id="acct-btn" aria-haspopup="true" aria-expanded="false">${m.avatar_url ? `<img src="${e(m.avatar_url)}" alt="">` : '<i data-lucide="user"></i>'}<span>${e(first)}</span></button>
+    box.innerHTML = `<button class="acct-btn" id="acct-btn" aria-haspopup="true" aria-expanded="false">${m.avatar_url ? `<img src="${e(m.avatar_url)}" alt="" referrerpolicy="no-referrer" onerror="this.style.display='none'">` : '<i data-lucide="user"></i>'}<span>${e(first)}</span></button>
       <div class="menu" id="menu" hidden><a href="orders.html">My orders</a><button id="signout">Sign out</button></div>`;
     $('acct-btn').onclick = () => { const h = $('menu').hidden = !$('menu').hidden; $('acct-btn').setAttribute('aria-expanded', !h); };
     $('signout').onclick = async () => { await Aura.auth.signOut(); location.href = 'index.html'; };

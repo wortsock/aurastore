@@ -49,10 +49,17 @@
     async clear() { items = []; emit(); await save(); },
     mergeGuestCart, ready
   };
+  let syncing = null;   // the one in-flight load/merge, shared by every auth event
   Aura.auth.onChange(async (event, session) => {
     if (session && session.user) {
-      if (!user || user.id !== session.user.id) { user = session.user; try { await mergeGuestCart(); } catch (e) { console.error(e); } emit(); }
-    } else { user = null; items = event === 'SIGNED_OUT' ? [] : rl(); if (event === 'SIGNED_OUT') wl([]); emit(); }
+      if (!user || user.id !== session.user.id) {
+        user = session.user;
+        syncing = (async () => { try { await mergeGuestCart(); } catch (e) { console.error(e); } emit(); })();
+      }
+      if (syncing) await syncing;      // a second event must wait for the first load, not skip ahead
+    } else {
+      syncing = null; user = null; items = event === 'SIGNED_OUT' ? [] : rl(); if (event === 'SIGNED_OUT') wl([]); emit();
+    }
     resolveReady();
   });
   items = rl();

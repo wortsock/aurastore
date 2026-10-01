@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Page not found | AuraStore</title>
+<meta name="robots" content="noindex">
+<script>
+// On GitHub Pages this page can be served from any depth, so point relative links back at the project root.
+if (/\.github\.io$/.test(location.hostname)) document.write('<base href="/' + location.pathname.split('/')[1] + '/">');
+</script>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2338bdf8'/%3E%3Cpath d='M18 5 8 18h7l-1 9 10-13h-7z' fill='%2306222f'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<style>
+.nf{padding:64px 0 48px;text-align:center;background:radial-gradient(700px 320px at 50% 0%,rgba(56,189,248,.16),transparent)}
+.nf .code{font:700 clamp(5.5rem,22vw,10rem)/1 Outfit,sans-serif;letter-spacing:-.04em;background:linear-gradient(180deg,#7dd3fc,#0284c7 70%,rgba(2,132,199,.15));-webkit-background-clip:text;background-clip:text;color:transparent}
+.nf h1{font-size:clamp(1.5rem,4vw,2.1rem);font-weight:600;margin:4px 0 10px}
+.nf p{color:var(--muted);max-width:46ch;margin:0 auto 24px}
+.nf form{display:flex;gap:8px;max-width:440px;margin:0 auto 20px}
+.nf input{flex:1;min-width:0;height:46px;padding:0 16px;border:1px solid var(--border);border-radius:999px;background:var(--surface);color:var(--text);font:inherit}
+.nf .row-btns{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-bottom:32px}
+.nf .chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.nf .chips a{padding:8px 16px;border:1px solid var(--border);border-radius:999px;background:var(--surface);font-size:.9rem}
+.nf .chips a:hover{border-color:var(--accent)}
+.nf small{display:block;color:var(--muted);margin-bottom:10px}
+</style>
+</head>
+<body data-page="404">
+<div id="site-header"></div>
+<main><section class="nf"><div class="wrap">
+  <div class="code" aria-hidden="true">404</div>
+  <h1>This page took a wrong turn</h1>
+  <p>We could not find what you were looking for. It may have moved, or the address may be wrong.</p>
+  <form action="shop.html" role="search"><input name="q" type="search" placeholder="Search products, brands..." aria-label="Search products"><button class="btn" type="submit">Search</button></form>
+  <div class="row-btns"><a class="btn" href="index.html">Back to Home</a><a class="btn ghost" href="shop.html">Browse the catalog</a></div>
+  <small>Or jump straight to a category</small>
+  <div class="chips" id="chips"></div>
+</div></section></main>
+<div id="site-footer"></div>
+<script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/supabase.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/products.js"></script>
+<script src="js/cart.js"></script>
+<script src="js/layout.js"></script>
+<script>
+Aura.products.categories().then(c => { document.getElementById('chips').innerHTML = c.map(x => '<a href="shop.html?category=' + encodeURIComponent(x.slug) + '">' + Aura.esc(x.name) + '</a>').join(''); }).catch(() => {});
+</script>
+</body>
+</html>
