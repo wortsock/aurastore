@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Product | AuraStore</title>
+<meta name="description" content="Product details at AuraStore. Prices in naira, pay on delivery.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2338bdf8'/%3E%3Cpath d='M18 5 8 18h7l-1 9 10-13h-7z' fill='%2306222f'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/product.css">
+</head>
+<body data-page="product">
+<div id="site-header"></div>
+<main><div class="wrap" id="root"><div class="sk" style="height:480px;margin-top:24px"></div></div></main>
+<div id="site-footer"></div>
+
+<script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/supabase.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/products.js"></script>
+<script src="js/cart.js"></script>
+<script src="js/layout.js"></script>
+<script>
+(function () {
+  const P = Aura.products, e = Aura.esc, N = Aura.formatNaira, root = document.getElementById('root');
+  const slug = Aura.qs('slug');
+  const notFound = () => { document.title = 'Product not found | AuraStore'; root.innerHTML = '<div class="state" style="margin-top:40px">Product not found.<br><br><a class="btn" href="shop.html">Back to Catalog</a></div>'; };
+  const failed = () => { root.innerHTML = '<div class="state" style="margin-top:40px">Could not load this product.<br><br><button class="btn ghost" id="retry">Retry</button></div>'; document.getElementById('retry').onclick = load; };
+  const list = (title, arr) => arr && arr.length ? `<section class="sec"><h2>${title}</h2><ul>${arr.map(x => `<li>${e(x)}</li>`).join('')}</ul></section>` : '';
+
+  async function load() {
+    if (!slug) return notFound();
+    root.innerHTML = '<div class="sk" style="height:480px;margin-top:24px"></div>';
+    try {
+      const { data: p, error } = await auraDb.from('products').select('*').eq('slug', slug).maybeSingle();
+      if (error) throw error; if (!p) return notFound();
+      const [{ data: cat }, { data: rel }] = await Promise.all([
+        auraDb.from('categories').select('name,slug').eq('id', p.category_id).maybeSingle(),
+        auraDb.from('products').select(P.FIELDS).eq('category_id', p.category_id).neq('id', p.id).limit(4)]);
+      P.remember(rel || []); render(p, cat, rel || []);
+    } catch (x) { console.error(x); failed(); }
+  }
+
+  function render(p, cat, rel) {
+    document.title = p.name + ' | AuraStore';
+    const imgs = p.image_urls.length ? p.image_urls : [''], out = p.stock_qty < 1;
+    const off = p.old_price ? Math.round((1 - p.price / p.old_price) * 100) : 0, stars = Math.round(p.rating_avg);
+    const stock = out ? '<span class="stock-out">Out of stock</span>' : p.stock_qty <= 5 ? `<span class="stock-low">Only ${p.stock_qty} left</span>` : '<span class="stock-ok">In stock</span>';
+    const fee = `Delivery ${N(AURA_CONFIG.DELIVERY_FEE)}, free on orders from ${N(AURA_CONFIG.FREE_DELIVERY_THRESHOLD)}. Pay on delivery.`;
+    const specs = Object.entries(p.specifications || {});
+    root.innerHTML = `
+      <nav class="crumbs" aria-label="Breadcrumb"><a href="index.html">Home</a><span>&gt;</span>${cat ? `<a href="shop.html?category=${encodeURIComponent(cat.slug)}">${e(cat.name)}</a><span>&gt;</span>` : ''}<span aria-current="page">${e(p.name)}</span></nav>
+      <div class="pd">
+        <div><div class="gallery-main" id="gmain"><img id="gimg" src="${e(imgs[0])}" alt="${e(p.name)}"></div>
+          ${imgs.length > 1 ? `<div class="thumbs">${imgs.map((u, i) => `<button data-i="${i}" aria-label="Show image ${i + 1}" aria-current="${i === 0}"><img src="${e(u)}" alt=""></button>`).join('')}</div>` : ''}</div>
+        <div>
+          <div class="brandline">${e(p.brand)}</div><h1>${e(p.name)}</h1>
+          <div class="rate" aria-label="Rated ${p.rating_avg} out of 5">${'★'.repeat(stars)}<i>${'★'.repeat(5 - stars)}</i> <i>${p.rating_avg} (${p.rating_count} ratings)</i></div>
+          <div class="pd-price"><b>${N(p.price)}</b>${p.old_price ? `<span class="old">${N(p.old_price)}</span><span class="tag off">-${off}%</span>` : ''}</div>
+          <div>${stock}</div>
+          ${p.short_description ? `<p style="color:var(--muted)">${e(p.short_description)}</p>` : ''}
+          <div class="buy">
+            <div class="qty-sel" ${out ? 'hidden' : ''}><button id="qm" aria-label="Decrease quantity">-</button><span id="qv" aria-live="polite">1</span><button id="qp" aria-label="Increase quantity">+</button></div>
+            <button class="btn" id="add" ${out ? 'disabled' : ''}><i data-lucide="shopping-cart"></i>${out ? 'Out of stock' : 'Add to cart'}</button>
+            <button class="btn ghost" id="buy" ${out ? 'disabled' : ''}>Buy now</button>
+          </div>
+          <div class="note"><i data-lucide="truck"></i><span>${fee}</span></div>
+          ${p.warranty ? `<p style="color:var(--muted);font-size:.9rem">Warranty: ${e(p.warranty)}</p>` : ''}
+        </div>
+      </div>
+      ${list('Highlights', p.highlights)}
+      ${p.description ? `<section class="sec"><h2>Description</h2><p>${e(p.description)}</p></section>` : ''}
+      ${specs.length ? `<section class="sec"><h2>Specifications</h2><table class="specs">${specs.map(([k, v]) => `<tr><th scope="row">${e(k)}</th><td>${e(v)}</td></tr>`).join('')}</table></section>` : ''}
+      ${list("What's in the box", p.box_contents)}
+      ${rel.length ? `<section class="sec"><h2>You may also like</h2><div class="grid">${rel.map(P.card).join('')}</div></section>` : ''}`;
+    lucide.createIcons();
+
+    // gallery: thumbnails and swipe
+    let cur = 0; const show = i => { cur = (i + imgs.length) % imgs.length; document.getElementById('gimg').src = imgs[cur]; root.querySelectorAll('.thumbs button').forEach((b, k) => b.setAttribute('aria-current', k === cur)); };
+    root.querySelectorAll('.thumbs button').forEach(b => b.onclick = () => show(+b.dataset.i));
+    let x0 = null; const gm = document.getElementById('gmain');
+    gm.addEventListener('touchstart', t => { x0 = t.touches[0].clientX; }, { passive: true });
+    gm.addEventListener('touchend', t => { if (x0 === null || imgs.length < 2) return; const dx = t.changedTouches[0].clientX - x0; if (Math.abs(dx) > 40) show(cur + (dx < 0 ? 1 : -1)); x0 = null; });
+
+    // quantity and buttons
+    let q = 1; const qv = document.getElementById('qv');
+    document.getElementById('qm').onclick = () => { q = Math.max(1, q - 1); qv.textContent = q; };
+    document.getElementById('qp').onclick = () => { if (q < p.stock_qty) q++; else Aura.toast('Only ' + p.stock_qty + ' in stock', 'err'); qv.textContent = q; };
+    document.getElementById('add').onclick = async () => { const r = await Aura.cart.add(p, q); r.ok ? Aura.toast(r.capped ? 'Only ' + p.stock_qty + ' in stock. Cart updated.' : 'Added to cart') : Aura.toast('Out of stock', 'err'); };
+    document.getElementById('buy').onclick = async () => { const r = await Aura.cart.add(p, q); if (r.ok) location.href = 'checkout.html'; };
+  }
+  load();
+})();
+</script>
+</body>
+</html>
