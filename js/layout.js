@@ -12,7 +12,7 @@
     <div class="overlay" id="overlay"></div>
     <aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-label="Your cart"><div class="d-head"><h2>Your cart</h2><button class="icon-btn" id="d-close" aria-label="Close cart"><i data-lucide="x"></i></button></div><div class="d-body" id="d-body"></div><div class="d-foot" id="d-foot"></div></aside>
     <div id="toasts" aria-live="polite"></div>`;
-  document.getElementById('site-footer').innerHTML = `<footer class="foot"><div class="wrap"><div><strong>AuraStore</strong><br>Delivery across Nigeria. Pay when your order arrives.</div><nav><a href="index.html">Home</a><a href="shop.html">Catalog</a><a href="orders.html">Orders</a></nav><div>&copy; 2026 AuraStore</div></div></footer>`;
+  document.getElementById('site-footer').innerHTML = `<footer class="foot"><div class="wrap"><div><strong>AuraStore</strong><br>Delivery across Nigeria. Pay when your order arrives.</div><nav><a href="index.html">Home</a><a href="shop.html">Catalog</a><a href="orders.html">Orders</a><a href="privacy.html">Privacy</a><a href="terms.html">Terms</a></nav><div>&copy; 2026 AuraStore</div></div></footer>`;
   const $ = id => document.getElementById(id), icons = () => window.lucide && lucide.createIcons();
 
   Aura.toast = (msg, type) => {
