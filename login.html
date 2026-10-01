@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign in | AuraStore</title>
+<meta name="description" content="Sign in to AuraStore with your Google account.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2338bdf8'/%3E%3Cpath d='M18 5 8 18h7l-1 9 10-13h-7z' fill='%2306222f'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/auth.css">
+</head>
+<body data-page="login">
+<div id="site-header"></div>
+<main><div class="wrap auth-wrap"><div class="auth-card">
+  <h1>Sign in to AuraStore</h1>
+  <p>Use your Google account. We never see your password.</p>
+  <div id="msg" aria-live="polite"></div>
+  <button class="g-btn" id="go">
+    <svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+    <span id="go-label">Continue with Google</span></button>
+  <p class="fine">By continuing you agree to our <a href="terms.html">Terms</a> and <a href="privacy.html">Privacy Policy</a>.</p>
+</div></div></main>
+<div id="site-footer"></div>
+
+<script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/supabase.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/products.js"></script>
+<script src="js/cart.js"></script>
+<script src="js/layout.js"></script>
+<script>
+(function () {
+  const $ = id => document.getElementById(id), msg = $('msg'), btn = $('go'), label = $('go-label');
+  const safe = u => (u && /^[a-z0-9-]+\.html(\?[^\s]*)?$/i.test(u)) ? u : 'index.html';
+
+  // P5-03: already signed in, so skip this page
+  Aura.auth.getSession().then(s => {
+    if (!s) return;
+    const r = safe(sessionStorage.getItem('aura_return'));
+    sessionStorage.removeItem('aura_return'); sessionStorage.removeItem('aura_login_reason');
+    location.replace(r);
+  });
+
+  // P5-01: explain why the visitor is here
+  const ret = sessionStorage.getItem('aura_return') || '', reason = sessionStorage.getItem('aura_login_reason');
+  if (reason === 'checkout' || ret.startsWith('checkout')) msg.innerHTML = '<div class="msg info">Sign in to continue to checkout. Your cart is saved.</div>';
+  else if (ret.startsWith('orders')) msg.innerHTML = '<div class="msg info">Sign in to see your orders.</div>';
+
+  // P5-04: readable errors sent back from the callback page
+  const code = Aura.qs('error');
+  if (code) {
+    const text = {
+      access_denied: 'Google sign-in was cancelled, or this Google account is not allowed to use the app yet.',
+      timeout: 'Sign-in took too long to finish. Please try again.'
+    }[code] || 'Sign-in did not work. Please try again.';
+    const extra = code === 'access_denied' ? '<small>If you did not cancel, the developer may need to add your Google account as a test user.</small>' : '';
+    msg.innerHTML = '<div class="msg err" role="alert">' + Aura.esc(text) + extra + '</div>';
+  }
+
+  // P5-02: start Google sign-in (the return page was stored before arriving here)
+  btn.onclick = async () => {
+    btn.disabled = true; label.textContent = 'Opening Google...';
+    try { await Aura.auth.signInWithGoogle(); }
+    catch (x) { console.error(x); btn.disabled = false; label.textContent = 'Continue with Google'; msg.innerHTML = '<div class="msg err" role="alert">Could not start sign-in. Please try again.</div>'; }
+  };
+})();
+</script>
+</body>
+</html>

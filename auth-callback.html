@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Signing you in | AuraStore</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2338bdf8'/%3E%3Cpath d='M18 5 8 18h7l-1 9 10-13h-7z' fill='%2306222f'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/auth.css">
+</head>
+<body>
+<main><div class="wrap auth-wrap"><div class="auth-card" id="card" aria-live="polite">
+  <div class="spinner" role="status"></div><h1>Signing you in</h1><p>One moment, we are finishing up and saving your cart.</p>
+</div></div></main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/supabase.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/cart.js"></script>
+<script>
+(function () {
+  const safe = u => (u && /^[a-z0-9-]+\.html(\?[^\s]*)?$/i.test(u)) ? u : 'index.html';
+  const hash = new URLSearchParams(location.hash.replace(/^#/, ''));
+  const err = Aura.qs('error') || hash.get('error');
+  const toLogin = code => location.replace('login.html?error=' + encodeURIComponent(code));
+  if (err) return toLogin(err === 'access_denied' ? 'access_denied' : 'failed');      // P6-03
+
+  const timeout = new Promise(r => setTimeout(() => r(null), 10000));
+  const session = (async () => {                                                      // P6-01: wait for the session
+    let s = await Aura.auth.getSession(); if (s) return s;
+    return new Promise(res => Aura.auth.onChange((ev, sess) => { if (sess) res(sess); }));
+  })();
+  Promise.race([session, timeout]).then(async s => {
+    if (!s) return toLogin('timeout');
+    try { await Promise.race([Aura.cart.ready, new Promise(r => setTimeout(r, 5000))]); } catch (e) {}   // P6-02: cart merge
+    const r = safe(sessionStorage.getItem('aura_return'));
+    sessionStorage.removeItem('aura_return'); sessionStorage.removeItem('aura_login_reason');
+    location.replace(r);
+  });
+})();
+</script>
+</body>
+</html>
