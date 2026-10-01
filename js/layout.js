@@ -55,7 +55,9 @@
     if (ev.key === 'Escape') closeCart();
     if (ev.key === 'Tab') { const f = [...drawer.querySelectorAll('a,button')]; const a = f[0], z = f[f.length - 1]; if (ev.shiftKey && document.activeElement === a) { ev.preventDefault(); z.focus(); } else if (!ev.shiftKey && document.activeElement === z) { ev.preventDefault(); a.focus(); } }
   });
-  drawer.addEventListener('click', async ev => {
+drawer.addEventListener('click', async ev => {
+    const co = ev.target.closest('a[href="checkout.html"]');
+    if (co && !signedIn) { ev.preventDefault(); sessionStorage.setItem('aura_return', 'checkout.html'); sessionStorage.setItem('aura_login_reason', 'checkout'); location.href = 'login.html'; return; }
     const q = ev.target.closest('[data-q]'), r = ev.target.closest('[data-rm]');
     if (q) { const it = (await Aura.cart.getItems()).find(x => x.product.id == q.dataset.q); await Aura.cart.setQty(+q.dataset.q, it.quantity + +q.dataset.d); }
     if (r) await Aura.cart.remove(+r.dataset.rm);
