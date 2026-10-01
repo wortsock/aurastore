@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Your cart | AuraStore</title>
+<meta name="description" content="Review the items in your AuraStore cart.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2338bdf8'/%3E%3Cpath d='M18 5 8 18h7l-1 9 10-13h-7z' fill='%2306222f'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/shop.css">
+<link rel="stylesheet" href="css/cart.css">
+</head>
+<body data-page="cart">
+<div id="site-header"></div>
+<main><div class="wrap">
+  <div class="page-head"><h1>Your cart</h1></div>
+  <div id="notices"></div>
+  <div id="root"><div class="sk" style="height:260px"></div></div>
+</div></main>
+<div id="site-footer"></div>
+
+<script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/supabase.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/products.js"></script>
+<script src="js/cart.js"></script>
+<script src="js/layout.js"></script>
+<script>
+(function () {
+  const e = Aura.esc, N = Aura.formatNaira, root = document.getElementById('root'), notes = document.getElementById('notices');
+  let checked = false;
+
+  async function check(rows) {          // P4-04: compare cart with current stock, once per visit
+    checked = true; const msgs = [];
+    for (const r of rows) {
+      const p = r.product;
+      if (p.stock_qty < 1) { await Aura.cart.remove(p.id); msgs.push(p.name + ' is no longer available and was removed.'); }
+      else if (r.quantity > p.stock_qty) { await Aura.cart.setQty(p.id, p.stock_qty); msgs.push('Only ' + p.stock_qty + ' of ' + p.name + ' left. Quantity updated.'); }
+    }
+    notes.innerHTML = msgs.map(m => `<div class="notice" role="status">${e(m)}</div>`).join('');
+  }
+  async function render() {
+    let rows;
+    try { rows = await Aura.cart.getItems(); if (!checked) { await check(rows); rows = await Aura.cart.getItems(); } }
+    catch (x) { root.innerHTML = '<div class="state">Could not load your cart.<br><br><button class="btn ghost" id="retry">Retry</button></div>'; document.getElementById('retry').onclick = render; return; }
+    if (!rows.length) { root.innerHTML = '<div class="state"><p>Your cart is empty.</p><a class="btn" href="shop.html">Continue shopping</a></div>'; return; }
+    const sub = rows.reduce((s, r) => s + r.product.price * r.quantity, 0);
+    const free = sub >= AURA_CONFIG.FREE_DELIVERY_THRESHOLD, fee = free ? 0 : AURA_CONFIG.DELIVERY_FEE;
+    root.innerHTML = `<div class="cart-layout"><div>${rows.map(({ product: p, quantity: q }) => `
+      <div class="c-line"><a href="product.html?slug=${encodeURIComponent(p.slug)}"><img src="${e(p.image_urls[0])}" alt="${e(p.name)}"></a>
+        <div><a class="nm" href="product.html?slug=${encodeURIComponent(p.slug)}">${e(p.name)}</a><div class="unit">${N(p.price)} each</div>
+          <div class="qty"><button data-q="${p.id}" data-d="-1" aria-label="Decrease quantity of ${e(p.name)}">-</button><span>${q}</span><button data-q="${p.id}" data-d="1" aria-label="Increase quantity of ${e(p.name)}">+</button></div></div>
+        <div class="c-end"><span class="c-total">${N(p.price * q)}</span><button class="rm" data-rm="${p.id}"><i data-lucide="trash-2" style="width:16px"></i>Remove</button></div></div>`).join('')}</div>
+      <aside class="summary" aria-label="Order summary"><h2>Order summary</h2>
+        <div class="row"><span>Subtotal</span><span>${N(sub)}</span></div>
+        <div class="row"><span>Delivery</span><span>${free ? '<span class="free">Free</span>' : N(fee)}</span></div>
+        ${free ? '' : `<div class="hint">Add ${N(AURA_CONFIG.FREE_DELIVERY_THRESHOLD - sub)} more for free delivery.</div>`}
+        <div class="row total"><span>Total</span><span>${N(sub + fee)}</span></div>
+        <p style="color:var(--muted);font-size:.85rem;margin:8px 0 0">Pay on delivery. No card details needed.</p>
+        <button class="btn" id="checkout">Checkout</button><a class="btn ghost" href="shop.html">Continue shopping</a></aside></div>`;
+    lucide.createIcons();
+  }
+  root.addEventListener('click', async ev => {
+    const q = ev.target.closest('[data-q]'), r = ev.target.closest('[data-rm]'), c = ev.target.closest('#checkout');
+    if (q) { const it = (await Aura.cart.getItems()).find(x => x.product.id == q.dataset.q); const want = it.quantity + +q.dataset.d; if (want > it.product.stock_qty) Aura.toast('Only ' + it.product.stock_qty + ' in stock', 'err'); await Aura.cart.setQty(+q.dataset.q, want); }
+    if (r) await Aura.cart.remove(+r.dataset.rm);
+    if (c) {   // P4-03: login gate
+      const s = await Aura.auth.getSession();
+      if (s) location.href = 'checkout.html';
+      else { sessionStorage.setItem('aura_return', 'checkout.html'); sessionStorage.setItem('aura_login_reason', 'checkout'); location.href = 'login.html'; }
+    }
+  });
+  Aura.cart.subscribe(render);
+  Aura.cart.ready.then(render);   // wait until a signed-in cart has finished loading
+})();
+</script>
+</body>
+</html>
