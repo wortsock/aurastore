@@ -19,7 +19,7 @@
     const t = document.createElement('div'); t.className = 'toast ' + (type === 'err' ? 'err' : ''); t.textContent = msg; $('toasts').appendChild(t); setTimeout(() => t.remove(), 3000);
   };
   // mobile menu
-  $('burger').onclick = () => { const o = $('nav').classList.toggle('open'); $('burger').setAttribute('aria-expanded', o); };
+  $('burger').onclick = () => { const o = $('nav').classList.toggle('open'); document.querySelector('.search').classList.toggle('open', o); $('burger').setAttribute('aria-expanded', o); };
   // account area
   let signedIn = false;
   function renderAcct(session) {
