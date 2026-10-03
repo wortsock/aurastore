@@ -16,7 +16,33 @@
   const $ = id => document.getElementById(id), icons = () => window.lucide && lucide.createIcons();
 
   Aura.toast = (msg, type) => {
-    const t = document.createElement('div'); t.className = 'toast ' + (type === 'err' ? 'err' : ''); t.textContent = msg; $('toasts').appendChild(t); setTimeout(() => t.remove(), 3000);
+    const box = $('toasts'), err = type === 'err', dur = err ? 4000 : 2800;
+    const top = box.lastElementChild;
+    // Count identical actions in a row (×2, ×3 ...)
+    const n = top && top.dataset.msg === msg ? (+top.dataset.n || 1) + 1 : 1;
+    const t = document.createElement('div');
+    t.className = 'toast' + (err ? ' err' : '');
+    t.dataset.msg = msg; t.dataset.n = n;
+    t.style.setProperty('--dur', dur + 'ms');
+    const label = document.createElement('span'); label.textContent = msg; t.appendChild(label);
+    if (n > 1) { const c = document.createElement('b'); c.className = 'count'; c.textContent = '×' + n; t.appendChild(c); }
+    box.appendChild(t);
+    t._t = setTimeout(() => dismiss(t), dur);
+    restack();
+    function dismiss(el) {
+      clearTimeout(el._t); el.classList.add('out');
+      setTimeout(() => { el.remove(); restack(); }, 180);
+    }
+    function restack() {
+      const all = [...box.children].filter(el => !el.classList.contains('out'));
+      // Keep at most 3 layers on screen
+      while (all.length > 3) { const old = all.shift(); clearTimeout(old._t); old.remove(); }
+      all.forEach((el, i) => {
+        const depth = all.length - 1 - i; // 0 = newest, in front
+        el.style.setProperty('--d', depth);
+        el.style.zIndex = 10 - depth;
+      });
+    }
   };
   // mobile menu
   $('burger').onclick = () => { const o = $('nav').classList.toggle('open'); document.querySelector('.search').classList.toggle('open', o); $('burger').setAttribute('aria-expanded', o); };
