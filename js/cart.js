@@ -24,6 +24,21 @@
       return true;
     } catch (e) { console.error('cart save failed', e); return false; }
   }
+  async function saveOne(id) {                       // write only the changed row
+    if (!user) { wl(items); return true; }
+    const it = items.find(i => i.id === id);
+    try {
+      const r = it
+        ? await auraDb.from('cart_items').upsert({ user_id: user.id, product_id: id, quantity: it.qty, updated_at: new Date().toISOString() })
+        : await auraDb.from('cart_items').delete().eq('user_id', user.id).eq('product_id', id);
+      if (r.error) throw r.error; return true;
+    } catch (e) { console.error('cart save failed', e); return false; }
+  }
+  async function clearAll() {
+    if (!user) { wl([]); return true; }
+    const r = await auraDb.from('cart_items').delete().eq('user_id', user.id);
+    return !r.error;
+  }
   async function mergeGuestCart() {
     const local = rl();
     const { data } = await auraDb.from('cart_items').select('product_id,quantity').eq('user_id', user.id);
@@ -41,12 +56,12 @@
       if (p.stock_qty < 1) return { ok: false };
       cache[p.id] = Object.assign(cache[p.id] || {}, p);
       const cur = items.find(i => i.id === p.id), want = (cur ? cur.qty : 0) + n, qty = Math.min(want, p.stock_qty);
-      cur ? cur.qty = qty : items.push({ id: p.id, qty }); emit(); await save();
+      cur ? cur.qty = qty : items.push({ id: p.id, qty }); emit(); await saveOne(p.id);
       return { ok: true, capped: qty < want };
     },
-    async setQty(id, q) { const i = items.find(x => x.id === id), p = cache[id]; if (!i || !p) return; i.qty = Math.max(1, Math.min(q, p.stock_qty)); emit(); await save(); },
-    async remove(id) { items = items.filter(i => i.id !== id); emit(); await save(); },
-    async clear() { items = []; emit(); await save(); },
+    async setQty(id, q) { const i = items.find(x => x.id === id), p = cache[id]; if (!i || !p) return; i.qty = Math.max(1, Math.min(q, p.stock_qty)); emit(); await saveOne(id); },
+    async remove(id) { items = items.filter(i => i.id !== id); emit(); await saveOne(id); },
+    async clear() { items = []; emit(); await clearAll(); },
     mergeGuestCart, ready
   };
   let syncing = null;   // the one in-flight load/merge, shared by every auth event
