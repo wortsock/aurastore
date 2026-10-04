@@ -52,20 +52,28 @@ function buildEmail(o: Order, items: Item[]) {
     `Subtotal: ${naira(o.subtotal)}`, `Delivery: ${o.delivery_fee === 0 ? "Free" : naira(o.delivery_fee)}`, `Total: ${naira(o.total)}`, "",
     `Payment: Pay on Delivery`, `Delivering to: ${addr}`, "", `View your orders: ${link}`,
   ].join("\n");
-  const rows = items.map((i) => `<tr><td style="padding:8px 0;border-bottom:1px solid #e2e8f0">${esc(i.product_name)}<br><span style="color:#64748b;font-size:13px">${i.quantity} x ${naira(i.unit_price)}</span></td><td align="right" style="padding:8px 0;border-bottom:1px solid #e2e8f0;white-space:nowrap">${naira(i.line_total)}</td></tr>`).join("");
-  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="color-scheme" content="light only"><meta name="viewport" content="width=device-width"></head>
-<body style="margin:0;padding:0;background:#f1f5f9;font-family:Arial,Helvetica,sans-serif;color:#0f172a">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#f1f5f9"><tr><td align="center" style="padding:20px 12px">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#ffffff" style="max-width:560px;background:#ffffff;border-radius:12px">
-<tr><td style="padding:24px 24px 8px"><div style="font-size:20px;font-weight:bold;color:#0284c7">AuraStore</div></td></tr>
-<tr><td style="padding:8px 24px"><h1 style="margin:0 0 6px;font-size:22px">Thank you for your order, ${esc(o.ship_name)}!</h1>
-<p style="margin:0;color:#475569">Order <b>${esc(o.order_number)}</b> &middot; ${esc(date)}</p></td></tr>
-<tr><td style="padding:12px 24px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:15px">${rows}
-<tr><td style="padding:10px 0 2px;color:#475569">Subtotal</td><td align="right" style="padding:10px 0 2px">${naira(o.subtotal)}</td></tr>
-<tr><td style="padding:2px 0;color:#475569">Delivery</td><td align="right" style="padding:2px 0">${o.delivery_fee === 0 ? "Free" : naira(o.delivery_fee)}</td></tr>
-<tr><td style="padding:8px 0;font-weight:bold;font-size:17px">Total</td><td align="right" style="padding:8px 0;font-weight:bold;font-size:17px">${naira(o.total)}</td></tr></table></td></tr>
-<tr><td style="padding:8px 24px 16px;font-size:14px;color:#334155"><b>Payment:</b> Pay on Delivery<br><b>Delivering to:</b> ${esc(addr)}</td></tr>
-<tr><td style="padding:0 24px 28px"><a href="${esc(link)}" style="display:inline-block;background:#0284c7;color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:8px;font-weight:bold">View my orders</a></td></tr>
+  const F = "'Outfit','Plus Jakarta Sans',Arial,Helvetica,sans-serif", B = "'Plus Jakarta Sans',Arial,Helvetica,sans-serif";
+  const logo = SITE_URL + "images/brand/icon-192.png";
+  const rows = items.map((i) => `<tr><td style="padding:12px 0;border-bottom:1px solid #334155;font-family:${B};font-size:15px;color:#f8fafc">${esc(i.product_name)}<br><span style="color:#94a3b8;font-size:13px">${i.quantity} x ${naira(i.unit_price)}</span></td><td align="right" valign="top" style="padding:12px 0;border-bottom:1px solid #334155;white-space:nowrap;font-family:${B};font-size:15px;color:#f8fafc">${naira(i.line_total)}</td></tr>`).join("");
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="color-scheme" content="dark light"><meta name="supported-color-schemes" content="dark light"><meta name="viewport" content="width=device-width"></head>
+<body style="margin:0;padding:0;background:#0f172a;font-family:${B};color:#f8fafc">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#0f172a" style="background:#0f172a"><tr><td align="center" style="padding:24px 12px">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#1e293b" style="max-width:560px;background:#1e293b;border:1px solid #334155;border-radius:16px">
+<tr><td style="padding:24px 24px 4px"><table role="presentation" cellpadding="0" cellspacing="0"><tr>
+<td valign="middle"><img src="${esc(logo)}" width="36" height="36" alt="" style="display:block;border-radius:8px"></td>
+<td valign="middle" style="padding-left:10px;font-family:${F};font-size:22px;font-weight:bold;color:#38bdf8">AuraStore</td></tr></table></td></tr>
+<tr><td style="padding:20px 24px 8px">
+<span style="display:inline-block;background:#064e3b;color:#34d399;border-radius:999px;padding:4px 12px;font-family:${F};font-size:12px;font-weight:bold;letter-spacing:.5px">ORDER CONFIRMED</span>
+<h1 style="margin:14px 0 6px;font-family:${F};font-size:26px;line-height:1.25;color:#f8fafc">Thank you, ${esc(o.ship_name)}!</h1>
+<p style="margin:0;color:#94a3b8;font-size:14px">Order <b style="color:#f8fafc">${esc(o.order_number)}</b> &middot; ${esc(date)}</p></td></tr>
+<tr><td style="padding:12px 24px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0">${rows}
+<tr><td style="padding:14px 0 2px;color:#94a3b8;font-size:14px">Subtotal</td><td align="right" style="padding:14px 0 2px;font-size:14px;color:#f8fafc">${naira(o.subtotal)}</td></tr>
+<tr><td style="padding:2px 0;color:#94a3b8;font-size:14px">Delivery</td><td align="right" style="padding:2px 0;font-size:14px;color:#f8fafc">${o.delivery_fee === 0 ? "Free" : naira(o.delivery_fee)}</td></tr>
+<tr><td style="padding:10px 0 0;font-family:${F};font-weight:bold;font-size:18px;color:#f8fafc">Total</td><td align="right" style="padding:10px 0 0;font-family:${F};font-weight:bold;font-size:20px;color:#38bdf8">${naira(o.total)}</td></tr></table></td></tr>
+<tr><td style="padding:8px 24px 20px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#131d31" style="background:#131d31;border:1px solid #334155;border-radius:12px"><tr><td style="padding:14px 16px;font-size:14px;line-height:1.6;color:#cbd5e1">
+<b style="color:#f8fafc">Payment</b><br>Pay on Delivery<br><br><b style="color:#f8fafc">Delivering to</b><br>${esc(addr)}</td></tr></table></td></tr>
+<tr><td style="padding:0 24px 28px"><a href="${esc(link)}" style="display:inline-block;background:#38bdf8;color:#0f172a;text-decoration:none;padding:13px 22px;border-radius:10px;font-family:${F};font-weight:bold;font-size:15px">View my orders</a></td></tr>
+<tr><td style="padding:16px 24px;border-top:1px solid #334155;font-size:12px;color:#94a3b8">AuraStore &middot; Thank you for shopping with us.</td></tr>
 </table></td></tr></table></body></html>`;
   return { text, html };
 }
