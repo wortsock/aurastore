@@ -99,7 +99,7 @@ Deno.serve(async (req) => {
   const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...c.headers, "Content-Type": "application/json" } });
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: c.headers });
   if (req.method !== "POST") return json({ error: "METHOD_NOT_ALLOWED" }, 405);
-  if (!c.ok) return json({ error: "ORIGIN_NOT_ALLOWED" }, 403);
+  if (req.headers.get("origin") && !c.ok) return json({ error: "ORIGIN_NOT_ALLOWED" }, 403);   // native apps send no Origin
 
   const token = (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
   if (!token) return json({ error: "UNAUTHORIZED" }, 401);
