@@ -25,7 +25,8 @@
     } catch (e) { console.error('cart save failed', e); return false; }
   }
   async function saveOne(id) {                       // write only the changed row
-    if (!user) { wl(items); return true; }
+    lastLocalWrite = Date.now();
+	if (!user) { wl(items); return true; }
     const it = items.find(i => i.id === id);
     try {
       const r = it
@@ -35,10 +36,29 @@
     } catch (e) { console.error('cart save failed', e); return false; }
   }
   async function clearAll() {
+	lastLocalWrite = Date.now();
     if (!user) { wl([]); return true; }
     const r = await auraDb.from('cart_items').delete().eq('user_id', user.id);
     return !r.error;
   }
+  let channel = null, lastLocalWrite = 0, reloadTimer = null;
+  async function reloadFromDb() {
+    if (!user) return;
+    const { data, error } = await auraDb.from('cart_items').select('product_id,quantity').eq('user_id', user.id);
+    if (error) return;
+    items = (data || []).map(r => ({ id: r.product_id, qty: r.quantity }));
+    emit();
+  }
+  function stopRealtime() { if (channel) { auraDb.removeChannel(channel); channel = null; } }
+  function startRealtime() {
+    stopRealtime();
+    channel = auraDb.channel('web-cart-' + user.id)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'cart_items', filter: 'user_id=eq.' + user.id }, () => {
+        if (Date.now() - lastLocalWrite < 1000) return;   // ignore echoes of our own writes
+        clearTimeout(reloadTimer); reloadTimer = setTimeout(reloadFromDb, 150);
+      }).subscribe();
+  }
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) reloadFromDb(); });
   async function mergeGuestCart() {
     const local = rl();
     const { data } = await auraDb.from('cart_items').select('product_id,quantity').eq('user_id', user.id);
@@ -69,11 +89,11 @@
     if (session && session.user) {
       if (!user || user.id !== session.user.id) {
         user = session.user;
-        syncing = (async () => { try { await mergeGuestCart(); } catch (e) { console.error(e); } emit(); })();
+        syncing = (async () => { try { await mergeGuestCart(); } catch (e) { console.error(e); } emit(); startRealtime(); })();
       }
       if (syncing) await syncing;      // a second event must wait for the first load, not skip ahead
     } else {
-      syncing = null; user = null; items = event === 'SIGNED_OUT' ? [] : rl(); if (event === 'SIGNED_OUT') wl([]); emit();
+      stopRealtime(); syncing = null; user = null; items = event === 'SIGNED_OUT' ? [] : rl(); if (event === 'SIGNED_OUT') wl([]); emit();
     }
     resolveReady();
   });
